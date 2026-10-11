@@ -14,7 +14,7 @@ export default function DashboardPage() {
         <p>Spending Track expenses</p>
       </section>
       <section id="content">
-        <BalanceCards />
+        <BalanceCards></BalanceCards>
       </section>
     </div>
   );
