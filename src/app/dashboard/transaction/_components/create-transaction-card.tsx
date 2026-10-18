@@ -211,7 +211,7 @@ export default function CreateTransactionCard({
                 </Field>
               )}
             />
-            <Button
+            <Button //ketika kolom tidak di isi dia kan disable, ketika ada isinya baru dia enable
               size="lg"
               type="submit"
               disabled={!form.formState.isValid || isPending}
