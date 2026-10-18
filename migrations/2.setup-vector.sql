@@ -13,7 +13,6 @@ RETURNS TABLE (
     date date,
     user_id uuid,
     similarity float
-
 )
 
 LANGUAGE sql STABLE 

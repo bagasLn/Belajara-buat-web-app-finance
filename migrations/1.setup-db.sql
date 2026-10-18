@@ -2,6 +2,7 @@
     CREATE EXTENSION IF NOT EXISTS vector;
 
 
+
 ---create tabel transcactions
 CREATE TABLE IF NOT EXISTS public.transactions (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
