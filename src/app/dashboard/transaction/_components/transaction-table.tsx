@@ -37,6 +37,7 @@ import { PencilIcon, Trash2Icon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Fragment } from "react/jsx-runtime";
 import DeleteTransactionDialog from "./delete-transaction-dialog";
+import UpdateTransactionDialaog from "./update-transaction-dialog";
 
 const Table_Header = [
   "#",
@@ -82,7 +83,7 @@ export default function TranscationTable({
 
   const [selectedTransaction, setSelectedTransaction] = useState<{
     data: Omit<Transaction, "user_id" | "embedding">;
-    action: "edit" | "delete";
+    action: "update" | "delete";
   } | null>(null);
 
   return (
@@ -136,7 +137,12 @@ export default function TranscationTable({
                         variant="ghost"
                         size="icon"
                         className="text-muted-foreground hover:text-yellow-500"
-                        onClick={() => {}}
+                        onClick={() => {
+                          setSelectedTransaction({
+                            data: transaction,
+                            action: "update",
+                          });
+                        }}
                       >
                         <PencilIcon className="size-4" />
                       </Button>
@@ -220,7 +226,7 @@ export default function TranscationTable({
           </div>
         </CardContent>
       </Card>
-      <DeleteTransactionDialog
+      <UpdateTransactionDialaog
         selectedTransaction={selectedTransaction}
         setSelectedTransaction={setSelectedTransaction}
         refetch={refetch}
