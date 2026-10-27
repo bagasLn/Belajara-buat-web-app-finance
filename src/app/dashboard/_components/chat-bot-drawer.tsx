@@ -12,11 +12,22 @@ import {
 } from "@/components/ui/drawer";
 import { handleChat } from "@/features/ai/chat";
 import { cn } from "@/lib/utils";
-import { BotIcon, XIcon } from "lucide-react";
-import { useState } from "react";
+import {
+  BotIcon,
+  EllipsisIcon,
+  Loader,
+  Loader2,
+  RefreshCw,
+  XIcon,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import ChatbotTextarea from "./chatbot-textarea";
+import { useMutation } from "@tanstack/react-query";
+import Markdown from "react-markdown";
 
 export default function ChatbotDrawer() {
+  const chatRef = useRef<HTMLDivElement>(null);
+
   const [conversation, setConversation] = useState<
     {
       role: string;
@@ -24,24 +35,44 @@ export default function ChatbotDrawer() {
         text: string;
       }[];
     }[]
-  >([
-    {
+  >([]);
+
+  const { mutate: handleChatMutation, isPending } = useMutation({
+    mutationFn: handleChat,
+    onSuccess: (response) => {
+      const botMessage = {
+        role: "model",
+        parts: [{ text: response || "There is an error" }],
+      };
+      setConversation((prev) => [...prev, botMessage]);
+    },
+    onError: (error) => {
+      const botMessage = {
+        role: "model",
+        parts: [{ text: "There is an error" + error.message }],
+      };
+      setConversation((prev) => [...prev, botMessage]);
+    },
+  });
+
+  function sendMessage(message: string) {
+    const newMessage = {
       role: "user",
-      parts: [
-        {
-          text: "hai",
-        },
-      ],
-    },
-    {
-      role: "model",
-      parts: [
-        {
-          text: "hai, can i help you?",
-        },
-      ],
-    },
-  ]);
+      parts: [{ text: message }],
+    };
+    setConversation((prev) => [...prev, newMessage]);
+    handleChatMutation(message);
+  }
+
+  useEffect(() => {
+    if (chatRef.current) {
+      chatRef.current?.scrollTo({
+        top: chatRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+  }, [conversation]);
+
   return (
     <Drawer direction="right" modal={false}>
       <DrawerTrigger className="fixed buttom-4 right-4" asChild>
@@ -73,7 +104,10 @@ export default function ChatbotDrawer() {
         </DrawerHeader>
         <div className="no0-scrollbar overflow-y-auto px-4 h-full">
           {conversation.length > 0 ? (
-            <div className="flex flex-col h-full overflow-x-hidden no-scrollbar overflow-y-auto gap-8">
+            <div
+              ref={chatRef}
+              className="flex flex-col h-full overflow-x-hidden no-scrollbar overflow-y-auto gap-8"
+            >
               {conversation.map((message, index) => (
                 <div
                   key={`conversation-${index}`}
@@ -94,10 +128,21 @@ export default function ChatbotDrawer() {
                         Ai Advisor
                       </div>
                     )}
-                    {message.parts[0].text}
+                    {message.role === "model" ? (
+                      <div className="response-ai">
+                        <Markdown>{message.parts[0].text}</Markdown>
+                      </div>
+                    ) : (
+                      message.parts[0].text
+                    )}
                   </div>
                 </div>
               ))}
+              {isPending && (
+                <div className="flex items-center animate-pulse">
+                  <Loader2 className="size-8 animate-spin text-primary/50" />
+                </div>
+              )}
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-full">
@@ -107,7 +152,7 @@ export default function ChatbotDrawer() {
           )}
         </div>
         <DrawerFooter>
-          <ChatbotTextarea />
+          <ChatbotTextarea sendMessage={sendMessage} />
         </DrawerFooter>
       </DrawerContent>
     </Drawer>
