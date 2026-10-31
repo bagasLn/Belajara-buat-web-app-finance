@@ -22,30 +22,21 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { Conversation } from "@/app/types/ai";
 
 export default function ChatbotDrawer() {
   const chatRef = useRef<HTMLDivElement>(null);
 
-  const [conversation, setConversation] = useState<
-    {
-      role: string;
-      parts: {
-        text: string;
-        thought?: boolean;
-      }[];
-    }[]
-  >([]);
+  const [conversation, setConversation] = useState<Conversation[]>([]);
 
   const [isThinking, setIsThinking] = useState<boolean>(false);
 
   // const { mutate: handleChatMutation, isPending } = useMutation({
   //   mutationFn: ({
-  //     message,
   //     isThinking,
   //   }: {
-  //     message: string;
   //     isThinking: boolean;
-  //   }) => handleChat(message, isThinking),
+  //   }) => handleChat(conversation, isThinking),
   //   onSuccess: (response) => {
   //     let parts: {
   //       text: string;
@@ -99,19 +90,13 @@ export default function ChatbotDrawer() {
   // });
 
   const { mutate: handleChatMutation, isPending } = useMutation({
-    mutationFn: async ({
-      message,
-      isThinking,
-    }: {
-      message: string;
-      isThinking: boolean;
-    }) => {
+    mutationFn: async ({ isThinking }: { isThinking: boolean }) => {
       if (isThinking) {
         setConversation((prev) => [
           ...prev,
           { role: "model", parts: [{ thought: true, text: "" }, { text: "" }] },
         ]);
-        const response = await handleChatStreaming(message, isThinking);
+        const response = await handleChatStreaming(conversation, isThinking);
         for await (const chunk of response) {
           setConversation((prev) => {
             const newConversation = [...prev];
@@ -144,7 +129,7 @@ export default function ChatbotDrawer() {
           ...prev,
           { role: "model", parts: [{ text: "" }] },
         ]);
-        const response = await handleChatStreaming(message, isThinking);
+        const response = await handleChatStreaming(conversation, isThinking);
         for await (const chunk of response) {
           setConversation((prev) => {
             const newConversation = [...prev];
@@ -181,13 +166,13 @@ export default function ChatbotDrawer() {
     //   };
     //   setConversation((prev) => [...prev, botMessage]);
     // },
-    // onError: (error) => {
-    //   const botMessage = {
-    //     role: "model",
-    //     parts: [{ text: "There is an error" + error.message }],
-    //   };
-    //   setConversation((prev) => [...prev, botMessage]);
-    // },
+    onError: (error) => {
+      const botMessage = {
+        role: "model",
+        parts: [{ text: "There is an error" + error.message }],
+      };
+      setConversation((prev) => [...prev, botMessage]);
+    },
   });
 
   function sendMessage(message: string) {
@@ -196,7 +181,7 @@ export default function ChatbotDrawer() {
       parts: [{ text: message }],
     };
     setConversation((prev) => [...prev, newMessage]);
-    handleChatMutation({ message, isThinking });
+    handleChatMutation({ isThinking });
   }
 
   useEffect(() => {
