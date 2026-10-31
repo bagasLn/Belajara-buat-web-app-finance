@@ -10,17 +10,9 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-import { handleChat, handleChatWithThinking } from "@/features/ai/chat";
+import { handleChat } from "@/features/ai/chat";
 import { cn } from "@/lib/utils";
-import {
-  BotIcon,
-  ChevronDownIcon,
-  EllipsisIcon,
-  Loader,
-  Loader2,
-  RefreshCw,
-  XIcon,
-} from "lucide-react";
+import { BotIcon, ChevronDownIcon, Loader2, XIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import ChatbotTextarea from "./chatbot-textarea";
 import { useMutation } from "@tanstack/react-query";
@@ -30,6 +22,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { set } from "zod";
 
 export default function ChatbotDrawer() {
   const chatRef = useRef<HTMLDivElement>(null);
@@ -44,12 +37,32 @@ export default function ChatbotDrawer() {
     }[]
   >([]);
 
+  const [isThinking, setIsThinking] = useState<boolean>(false);
+
   const { mutate: handleChatMutation, isPending } = useMutation({
-    mutationFn: handleChat,
+    mutationFn: ({
+      message,
+      isThinking,
+    }: {
+      message: string;
+      isThinking: boolean;
+    }) => handleChat(message, isThinking),
     onSuccess: (response) => {
+      let parts: {
+        text: string;
+        thought?: boolean;
+      }[] = [];
+
+      if (response?.thought !== "") {
+        parts = [
+          ...parts,
+          { thought: true, text: response?.thought || "There is an error" },
+        ];
+      }
+
       const botMessage = {
         role: "model",
-        parts: [{ text: response || "There is an error" }],
+        parts: [...parts, { text: response?.answer || "There is an error" }],
       };
       setConversation((prev) => [...prev, botMessage]);
     },
@@ -62,29 +75,29 @@ export default function ChatbotDrawer() {
     },
   });
 
-  const {
-    mutate: handleChatWithThinkingMutation,
-    isPending: isPendingChatWithThinking,
-  } = useMutation({
-    mutationFn: handleChatWithThinking,
-    onSuccess: (response) => {
-      const botMessage = {
-        role: "model",
-        parts: [
-          { thought: true, text: response?.thought || "There is an error" },
-          { text: response?.answer || "There is an error" },
-        ],
-      };
-      setConversation((prev) => [...prev, botMessage]);
-    },
-    onError: (error) => {
-      const botMessage = {
-        role: "model",
-        parts: [{ text: "There is an error" + error.message }],
-      };
-      setConversation((prev) => [...prev, botMessage]);
-    },
-  });
+  // const {
+  //   mutate: handleChatWithThinkingMutation,
+  //   isPending: isPendingChatWithThinking,
+  // } = useMutation({
+  //   mutationFn: handleChatWithThinking,
+  //   onSuccess: (response) => {
+  //     const botMessage = {
+  //       role: "model",
+  //       parts: [
+  //         { thought: true, text: response?.thought || "There is an error" },
+  //         { text: response?.answer || "There is an error" },
+  //       ],
+  //     };
+  //     setConversation((prev) => [...prev, botMessage]);
+  //   },
+  //   onError: (error) => {
+  //     const botMessage = {
+  //       role: "model",
+  //       parts: [{ text: "There is an error" + error.message }],
+  //     };
+  //     setConversation((prev) => [...prev, botMessage]);
+  //   },
+  // });
 
   function sendMessage(message: string) {
     const newMessage = {
@@ -92,7 +105,7 @@ export default function ChatbotDrawer() {
       parts: [{ text: message }],
     };
     setConversation((prev) => [...prev, newMessage]);
-    handleChatWithThinkingMutation(message);
+    handleChatMutation({ message, isThinking });
   }
 
   useEffect(() => {
@@ -189,7 +202,7 @@ export default function ChatbotDrawer() {
                   </div>
                 </div>
               ))}
-              {isPendingChatWithThinking && (
+              {isPending && (
                 <div className="flex items-center animate-pulse">
                   <Loader2 className="size-8 animate-spin text-primary/50" />
                 </div>
@@ -203,7 +216,11 @@ export default function ChatbotDrawer() {
           )}
         </div>
         <DrawerFooter>
-          <ChatbotTextarea sendMessage={sendMessage} />
+          <ChatbotTextarea
+            isThinking={isThinking}
+            setIsThinking={setIsThinking}
+            sendMessage={sendMessage}
+          />
         </DrawerFooter>
       </DrawerContent>
     </Drawer>
