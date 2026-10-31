@@ -231,6 +231,11 @@ export default function TranscationTable({
         setSelectedTransaction={setSelectedTransaction}
         refetch={refetch}
       />
+      <DeleteTransactionDialog
+        selectedTransaction={selectedTransaction}
+        setSelectedTransaction={setSelectedTransaction}
+        refetch={refetch}
+      />
     </Fragment>
   );
 }
