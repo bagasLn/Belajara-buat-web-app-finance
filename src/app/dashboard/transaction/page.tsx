@@ -13,9 +13,6 @@ export default function TransactionPage() {
         <h1 className="text-4xl font-bold text-primary">Transaction</h1>
         <p>View and manage your financial transactions.</p>
       </section>
-      <section id="content">
-        <Transaction></Transaction>
-      </section>
     </div>
   );
 }
