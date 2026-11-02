@@ -5,6 +5,7 @@ import { Card, CardAction, CardContent } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { Toggle } from "@/components/ui/toggle";
 import { handleWizardInput } from "@/features/ai/chat";
+import { generateEmbedding } from "@/features/ai/embedding";
 import { createTransaction } from "@/features/transaction/action";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -35,9 +36,13 @@ export default function WizardInput({ refetch }: { refetch: () => void }) {
       if (!aiResponse) {
         throw new Error("Field to process AI input");
       }
-      return createTransaction(aiResponse);
+      const embedding = await generateEmbedding(JSON.stringify(aiResponse));
+      console.log(embedding);
+      return;
+
+      //   return createTransaction(aiResponse);
     },
-    onSuccess: (response) => {
+    onSuccess: () => {
       toast.success("Transaction created successfully");
       refetch();
       form.reset();

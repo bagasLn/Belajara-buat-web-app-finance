@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { BalanceCards } from "./_components/balance-card";
+
 import DashboardContent from "./transaction/_components/dashboard-content";
 
 export const metadata: Metadata = {
