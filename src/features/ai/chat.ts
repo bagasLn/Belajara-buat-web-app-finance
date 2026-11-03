@@ -173,6 +173,7 @@ const transcationSchema = z.object({
   description: z.string().describe("Short text describing transcation"),
   date: z.string().describe("the date of transcation YYYY-MM-DD format"),
 });
+
 export async function handleWizardInput(message: string) {
   const contents = `
   <role>

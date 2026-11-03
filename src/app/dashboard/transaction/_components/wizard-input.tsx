@@ -36,13 +36,10 @@ export default function WizardInput({ refetch }: { refetch: () => void }) {
       if (!aiResponse) {
         throw new Error("Field to process AI input");
       }
-      const embedding = await generateEmbedding(JSON.stringify(aiResponse));
-      console.log(embedding);
-      return;
 
-      //   return createTransaction(aiResponse);
+      return createTransaction(aiResponse);
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
       toast.success("Transaction created successfully");
       refetch();
       form.reset();
@@ -99,7 +96,7 @@ export default function WizardInput({ refetch }: { refetch: () => void }) {
             disabled={isPending}
           >
             {isPending ? (
-              <Loader2Icon className="size-5 animat-spin" />
+              <Loader2Icon className="size-5 animate-spin" />
             ) : (
               <SendIcon className="size-5" />
             )}
