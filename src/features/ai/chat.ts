@@ -3,7 +3,9 @@
 import { Conversation } from "@/app/types/ai";
 import { createAI } from "./instance";
 import z from "zod";
-import { describe } from "zod/v4/core";
+import { createClient } from "@/lib/supabase/server";
+import { generateEmbedding } from "./embedding";
+import { Transaction } from "@/app/types/transaction";
 
 export async function handleChat(
   conversation: Conversation[],
@@ -47,10 +49,7 @@ export async function handleChat(
   return result;
 }
 
-export async function* handleChatStreaming(
-  conversation: Conversation[],
-  isThinking: boolean,
-) {
+async function generalChat(conversation: Conversation[], isThinking?: boolean) {
   const ai = createAI();
   const response = await ai.models.generateContentStream({
     model: "gemini-3.5-flash",
@@ -125,6 +124,98 @@ export async function* handleChatStreaming(
       // frequencyPenalty: 1.5, //-> semakin tinggi angkanya maka AI mencegah pengulangan kata yang sering muncul,dan masih topik yang sama  (angka maksimal -> 2.0)
     },
   });
+  return response;
+}
+
+async function personalizeChat(
+  query: string,
+  historyChat?: Conversation[],
+  isThinking?: boolean,
+) {
+  const ai = createAI();
+  const supabase = await createClient();
+  const queryEmbedding = await generateEmbedding(query);
+
+  const { data, error } = await supabase.rpc("match_transactions", {
+    query_embedding: queryEmbedding,
+    match_threshold: 0.3,
+    match_count: 15,
+  });
+
+  if (error) {
+    throw new Error("failed to perform vector search");
+  }
+  let contextData = "";
+
+  if (!data || data.length === 0) {
+    contextData =
+      "No transaction found that area similar or relevant to the question";
+  } else {
+    contextData = data
+      .map((transaction: Transaction) => {
+        return JSON.stringify(transaction);
+      })
+      .join("\n");
+  }
+  const prompt = `
+  <Role>
+  You are an AI Financial analyst. You are helping the user analyze
+  their financial data using the RAG (Retrieval-Augmented Generation) technique.
+  </Role>
+  
+  <input>
+  User question: '${query}'
+  </input>
+
+  <context>
+  Relevant Transaction data from the database (order from most relevant)
+  ${contextData}
+  </context>
+
+  <instruction>
+  -Answer the user question ONLY base on the relevant transaction data above.
+  -If there are calculations (total spending, average, etc), calculate them accurately based on the data.
+  -Provide answer in ad neat, professional, yet easy-to-understand markdown format.
+  -If there is no relevant data at all, state that the data is not available in the history.
+  - If user question is general and not need a data, response generally.
+  </instruction>
+
+  <Constraints>
+  - Don't asnwer in table format instaed of markdown
+  </Constraints>
+  
+  `;
+
+  const response = await ai.models.generateContentStream({
+    model: "gemini-3.5-flash",
+    contents: [
+      ...(historyChat ?? []),
+      { role: "user", parts: [{ text: prompt }] },
+    ],
+    config: {
+      thinkingConfig: {
+        includeThoughts: isThinking,
+      },
+    },
+  });
+  return response;
+}
+
+export async function* handleChatStreaming(
+  conversation: Conversation[],
+  isThinking: boolean,
+  mode: "general" | "personal",
+) {
+  let response;
+  if (mode === "general") {
+    response = await generalChat(conversation, isThinking);
+  } else {
+    response = await personalizeChat(
+      conversation[conversation.length - 1].parts[0].text,
+      conversation.slice(0, -1),
+      isThinking,
+    );
+  }
 
   if (isThinking) {
     for await (const chunk of response) {

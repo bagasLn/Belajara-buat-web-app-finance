@@ -168,10 +168,17 @@
   }
   ul {
     @apply w-full space-y-1 text-wrap;
+    li {
+      @apply list-disc list-inside text-wrap;
+      ul {
+        list-style-type: circle;
+        li {
+          @apply list-inside text-wrap ml-2;
+        }
+      }
+    }
   }
-  li {
-    @apply list-disc list-inside text-wrap;
-  }
+
   pre {
     @apply w-full text-wrap;
   }
