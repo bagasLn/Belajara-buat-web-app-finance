@@ -93,7 +93,7 @@ export default function ChatbotTextarea({
               <SelectValue>{mode}</SelectValue>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="eneral">General</SelectItem>
+              <SelectItem value="general">General</SelectItem>
               <SelectItem value="personal">Personal</SelectItem>
             </SelectContent>
           </Select>

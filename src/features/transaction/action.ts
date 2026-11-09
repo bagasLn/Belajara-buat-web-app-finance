@@ -41,7 +41,10 @@ export async function getTransactions(params?: {
     .select("id, amount, type, description, date, category", {
       count: "exact",
     })
-    .order("date");
+    .order("date")
+    .order("create_at", {
+      ascending: true,
+    });
 
   if (search) {
     // Mencari kata kunci di kolom table description & category
