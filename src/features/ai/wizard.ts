@@ -2,13 +2,19 @@
 
 import z from "zod";
 import { createAI } from "./instance";
-import { FunctionDeclaration, Type } from "@google/genai";
+import { Content } from "@google/genai";
 import {
   createTransaction,
   deleteTransaction,
   updateTransaction,
 } from "../transaction/action";
 import { findEmbedding } from "./embedding";
+import {
+  createTransactionDeclaration,
+  deleteTransactionDeclaration,
+  getTransactionDeclaration,
+  updateTransactionDeclaration,
+} from "./functionTransaction";
 
 const transactionSchema = z.object({
   amount: z.number().default(0).describe("Transcation nominal"),
@@ -29,35 +35,44 @@ const transactionSchema = z.object({
 });
 
 export async function handleWizardInput(message: string) {
-  const contents = `
-  <role>
-    You are an AI Wizard finance assistant, who can extract transcation details from text.
-  </role>
+  const contents: Content[] = [
+    {
+      role: "user",
+      parts: [
+        {
+          text: `
+                <role>
+                    You are an AI Wizard finance assistant, who can extract transcation details from text.
+                </role>
 
-  <Instruction>
-  Extract transcation details from the following text and return it as a structure JSON object.
-  The JSON object must have exactly these fileds:
-  -"amount": a number representing the cost (positive). Use 0 if not provided.
-  -"type": type of transcation, either 'income' or 'expense'
-  -"category": choose the most appropriate category from this exact list:
-      "Food & Drink", "Transportation", "Entertaiment", "Shopping", "Housing", "Salary", "Other".
-  -"description": a short string describing of transcation, first letter capitalized.
-  -"date": date of transcation in YYYY-MM-DD format.
-          Assume the current date if relative terms like 'today' or 'just now'. If not define use current date
-  </Instruction>
+                <Instruction>
+                Extract transcation details from the following text and return it as a structure JSON object.
+                The JSON object must have exactly these fileds:
+                -"amount": a number representing the cost (positive). Use 0 if not provided.
+                -"type": type of transcation, either 'income' or 'expense'
+                -"category": choose the most appropriate category from this exact list:
+                    "Food & Drink", "Transportation", "Entertaiment", "Shopping", "Housing", "Salary", "Other".
+                -"description": a short string describing of transcation, first letter capitalized.
+                -"date": date of transcation in YYYY-MM-DD format.
+                        Assume the current date if relative terms like 'today' or 'just now'. If not define use current date
+                </Instruction>
 
-  <Context>
-  Current Date: ${new Date().toISOString()}
-  </Context>
+                <Context>
+                Current Date: ${new Date().toISOString()}
+                </Context>
 
-  <input>
-  Text to extract: ${message}
-  </input>
+                <input>
+                Text to extract: ${message}
+                </input>
 
-  <outputFormat>
-    Respond with only the raw JSON object, no markdown blocks, no text before or after.
-  </outputFormat>
-  `;
+                <outputFormat>
+                    Respond with only the raw JSON object, no markdown blocks, no text before or after.
+                </outputFormat>
+                `,
+        },
+      ],
+    },
+  ];
 
   const ai = createAI();
   const response = await ai.models.generateContent({
@@ -76,82 +91,23 @@ export async function handleWizardInput(message: string) {
   return "crate transcation success";
 }
 
-const transactionProperties = {
-  id: {
-    type: Type.STRING,
-    description: "The unique identifier of the transaction",
-  },
-  amount: {
-    type: Type.NUMBER,
-    description: "Amount based on  transaction",
-  },
-  type: {
-    type: Type.STRING,
-    enum: ["income", "expense"],
-    description: 'The type of the transaction, either "income" or "expense"',
-  },
-  category: {
-    type: Type.STRING,
-    enum: [
-      "Food & Drink",
-      "Transportation",
-      "Entertaiment",
-      "Shopping",
-      "Housing",
-      "Salary",
-      "Others",
-    ],
-    description: "the category from the transaction",
-  },
-  description: {
-    type: Type.STRING,
-    description: "Total summary based on transaction, first letter capitalized",
-  },
-  date: {
-    type: Type.STRING,
-    description: 'The date of the transaction in a format "YYYY-MM-DD"',
-  },
-};
-
-const createTransactionDeclaration: FunctionDeclaration = {
-  name: "create_transaction",
-  description:
-    "Create a new transaction in the user's financial history based on by provided details",
-  parameters: {
-    type: Type.OBJECT,
-    properties: transactionProperties,
-    required: ["amount", "description", "type", "category", "date"],
-  },
-};
-
-const deleteTransactionDeclaration: FunctionDeclaration = {
-  name: "delete_transaction",
-  description:
-    "Delete an existing transaction from user's financial history based on the provided data.",
-  parameters: {
-    type: Type.OBJECT,
-    properties: transactionProperties,
-  },
-};
-
-const updateTransactionDeclaration: FunctionDeclaration = {
-  name: "update_transaction",
-  description:
-    "Update an existing transaction from user's financial history based on the provided data.",
-  parameters: {
-    type: Type.OBJECT,
-    properties: transactionProperties,
-  },
-};
-
 export async function handleWizardTools(message: string) {
-  const contents = `
+  const contents: Content[] = [
+    {
+      role: "user",
+      parts: [
+        {
+          text: `
+  
     <role>
         You are an AI Wizard finance assistant, who can extract transcation details from text.
     </role>
 
     <Instruction>
-    Extract transcation details from the following text.
+    - Extract transcation details from the following text.
+    - If request is to update or delete transaction, you must call function get_transaction first to find out which transaction will be update or delete
+    - When update transaction, args mus return from get_transaction before  with fully like in schema
+    - The final respone if there are no more function being called is as simple as possible
     </Instruction>
 
     <Context>
@@ -162,73 +118,101 @@ export async function handleWizardTools(message: string) {
     Text to extract: ${message}
     </input>
 
-  `;
-  const ai = createAI();
-  const response = await ai.models.generateContent({
-    model: "gemini-3.5-flash",
-    contents,
-    config: {
-      tools: [
-        {
-          functionDeclarations: [
-            createTransactionDeclaration,
-            deleteTransactionDeclaration,
-            updateTransactionDeclaration,
-          ],
+  `,
         },
       ],
     },
-  });
+  ];
 
-  if (response.functionCalls && response.functionCalls.length > 0) {
-    await Promise.all(
-      response.functionCalls.map(async (functionCall) => {
-        const args = functionCall.args;
-        if (!args) {
-          throw new Error("No arguments provided for create transcations");
-        }
-        switch (functionCall.name) {
-          case "create_transaction":
-            const transaction = transactionSchema.parse(args);
-            if (transaction.amount <= 0) {
-              throw new Error("Cannot create transaction with invalid amount");
-            }
-            await createTransaction(transaction);
-            break;
+  const ai = createAI();
 
-          case "delete_transaction":
-            const dataFindForDelete = await findEmbedding(
-              JSON.stringify(args),
-              0.9,
-              1,
-            );
-            const deletedData = dataFindForDelete[0];
-            await deleteTransaction(deletedData.id);
-            break;
+  let running = true;
+  while (running) {
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents,
+      config: {
+        tools: [
+          {
+            functionDeclarations: [
+              getTransactionDeclaration,
+              createTransactionDeclaration,
+              deleteTransactionDeclaration,
+              updateTransactionDeclaration,
+            ],
+          },
+        ],
+      },
+    });
 
-          case "update_transaction":
-            const dataFindForUpdate = await findEmbedding(
-              JSON.stringify(args),
-              0.9,
-              1,
-            );
-            const updatedData = dataFindForUpdate[0];
-            const newData = transactionSchema.parse(args);
-            console.log(newData);
-            if (newData.amount <= 0) {
-              throw new Error("cannot update transaction with invalid amount");
-            }
-            await updateTransaction(updatedData.id, newData);
-            break;
+    if (response.functionCalls && response.functionCalls.length > 0) {
+      if (response.candidates && response.candidates[0]?.content) {
+        contents.push(response.candidates[0].content);
+      }
+      const functionResponseParts = await Promise.all(
+        response.functionCalls.map(async (functionCall) => {
+          const { name, args, id } = functionCall;
+          if (!args) {
+            throw new Error("No arguments provided for create transcations");
+          }
 
-          default:
-            throw new Error(`unknown function call`);
-        }
-      }),
-    );
+          let resultData = {};
 
-    return "Function executed successfully";
-  } else {
-    throw new Error("ai does not call any function");
+          switch (name) {
+            case "get_transaction":
+              const dataFind = await findEmbedding(
+                JSON.stringify(args),
+                0.9,
+                1,
+              );
+              resultData = dataFind[0] || {};
+              break;
+
+            case "create_transaction":
+              const transaction = transactionSchema.parse(args);
+              if (transaction.amount <= 0) {
+                throw new Error(
+                  "Cannot create transaction with invalid amount",
+                );
+              }
+              await createTransaction(transaction);
+              break;
+
+            case "delete_transaction":
+              await deleteTransaction(`${args.id}`);
+              break;
+
+            case "update_transaction":
+              const newData = transactionSchema.parse(args);
+              if (newData.amount <= 0) {
+                throw new Error(
+                  "cannot update transaction with invalid amount",
+                );
+              }
+              await updateTransaction(`${args.id}`, newData);
+              break;
+
+            default:
+              throw new Error(`unknown function call`);
+          }
+
+          return {
+            functionResponse: {
+              name,
+              response: { result: resultData },
+              id,
+            },
+          };
+        }),
+      );
+
+      contents.push({
+        role: "user",
+        parts: functionResponseParts,
+      });
+    } else {
+      running = false;
+      return response.text;
+    }
   }
 }
