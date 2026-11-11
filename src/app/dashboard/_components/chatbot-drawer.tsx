@@ -10,7 +10,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-import { handleChat, handleChatStreaming } from "@/features/ai/chat";
+import { handleChatStreaming } from "@/features/ai/chat";
 import { cn } from "@/lib/utils";
 import { BotIcon, ChevronDownIcon, Loader2, XIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -288,7 +288,7 @@ export default function ChatbotDrawer() {
                 </div>
               ))}
               {isPending && (
-                <div className="flex items-center animate-pulse">
+                <div className="flex items-center animate-pulse -mt-8">
                   <Loader2 className="size-8 animate-spin text-primary/50" />
                 </div>
               )}

@@ -3,7 +3,11 @@
 import z from "zod";
 import { createAI } from "./instance";
 import { FunctionDeclaration, Type } from "@google/genai";
-import { createTransaction, deleteTransaction } from "../transaction/action";
+import {
+  createTransaction,
+  deleteTransaction,
+  updateTransaction,
+} from "../transaction/action";
 import { findEmbedding } from "./embedding";
 
 const transactionSchema = z.object({
@@ -130,6 +134,16 @@ const deleteTransactionDeclaration: FunctionDeclaration = {
   },
 };
 
+const updateTransactionDeclaration: FunctionDeclaration = {
+  name: "update_transaction",
+  description:
+    "Update an existing transaction from user's financial history based on the provided data.",
+  parameters: {
+    type: Type.OBJECT,
+    properties: transactionProperties,
+  },
+};
+
 export async function handleWizardTools(message: string) {
   const contents = `
     <role>
@@ -159,6 +173,7 @@ export async function handleWizardTools(message: string) {
           functionDeclarations: [
             createTransactionDeclaration,
             deleteTransactionDeclaration,
+            updateTransactionDeclaration,
           ],
         },
       ],
@@ -180,11 +195,32 @@ export async function handleWizardTools(message: string) {
             }
             await createTransaction(transaction);
             break;
+
           case "delete_transaction":
-            const data = await findEmbedding(JSON.stringify(args), 0.9, 1);
-            const deletedData = data[0];
+            const dataFindForDelete = await findEmbedding(
+              JSON.stringify(args),
+              0.9,
+              1,
+            );
+            const deletedData = dataFindForDelete[0];
             await deleteTransaction(deletedData.id);
             break;
+
+          case "update_transaction":
+            const dataFindForUpdate = await findEmbedding(
+              JSON.stringify(args),
+              0.9,
+              1,
+            );
+            const updatedData = dataFindForUpdate[0];
+            const newData = transactionSchema.parse(args);
+            console.log(newData);
+            if (newData.amount <= 0) {
+              throw new Error("cannot update transaction with invalid amount");
+            }
+            await updateTransaction(updatedData.id, newData);
+            break;
+
           default:
             throw new Error(`unknown function call`);
         }
