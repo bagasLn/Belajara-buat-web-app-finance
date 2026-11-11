@@ -6,6 +6,8 @@ import z from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { findEmbedding, generateEmbedding } from "./embedding";
 import { Transaction } from "@/app/types/transaction";
+import { Content, FunctionCall, Part } from "@google/genai";
+import { getTransactionDeclaration } from "./functionTransaction";
 
 export async function handleChat(
   conversation: Conversation[],
@@ -49,7 +51,7 @@ export async function handleChat(
   return result;
 }
 
-async function generalChat(conversation: Conversation[], isThinking?: boolean) {
+async function generalChat(conversation: Content[], isThinking?: boolean) {
   const ai = createAI();
   const response = await ai.models.generateContentStream({
     model: "gemini-3.5-flash",
@@ -127,113 +129,161 @@ async function generalChat(conversation: Conversation[], isThinking?: boolean) {
   return response;
 }
 
-async function personalizeChat(
-  query: string,
-  historyChat?: Conversation[],
-  isThinking?: boolean,
-) {
-  const ai = createAI();
-
-  const data = await findEmbedding(query);
-
-  let contextData = "";
-
-  if (!data || data.length === 0) {
-    contextData =
-      "No transaction found that area similar or relevant to the question";
-  } else {
-    contextData = data
-      .map((transaction: Transaction) => {
-        return JSON.stringify(transaction);
-      })
-      .join("\n");
-  }
-  const prompt = `
-  <Role>
-  You are an AI Financial analyst. You are helping the user analyze
-  their financial data using the RAG (Retrieval-Augmented Generation) technique.
-  </Role>
-  
-  <input>
-  User question: '${query}'
-  </input>
-
-  <context>
-  Relevant Transaction data from the database (order from most relevant)
-  ${contextData}
-  </context>
-
-  <instruction>
-  -Answer the user question ONLY base on the relevant transaction data above.
-  -If there are calculations (total spending, average, etc), calculate them accurately based on the data.
-  -Provide answer in ad neat, professional, yet easy-to-understand markdown format.
-  -If there is no relevant data at all, state that the data is not available in the history.
-  - If user question is general and not need a data, response generally.
-  </instruction>
-
-  <Constraints>
-  - Don't asnwer in table format instaed of markdown
-  </Constraints>
-  
-  `;
-
-  const response = await ai.models.generateContentStream({
-    model: "gemini-3.5-flash",
-    contents: [
-      ...(historyChat ?? []),
-      { role: "user", parts: [{ text: prompt }] },
-    ],
-    config: {
-      thinkingConfig: {
-        includeThoughts: isThinking,
-      },
-    },
-  });
-  return response;
-}
-
 export async function* handleChatStreaming(
-  conversation: Conversation[],
+  conversation: Content[],
   isThinking: boolean,
   mode: "general" | "personal",
 ) {
-  let response;
   if (mode === "general") {
-    response = await generalChat(conversation, isThinking);
-  } else {
-    response = await personalizeChat(
-      conversation[conversation.length - 1].parts[0].text,
-      conversation.slice(0, -1),
-      isThinking,
-    );
-  }
-
-  if (isThinking) {
-    for await (const chunk of response) {
-      const parts = chunk.candidates?.[0]?.content?.parts;
-      if (parts) {
-        for (const part of parts) {
-          if (!part.text) {
-            continue;
-          } else if (part.thought) {
-            yield `[thought]${part.text}`;
-          } else {
-            yield part.text;
+    const response = await generalChat(conversation, isThinking);
+    if (isThinking) {
+      for await (const chunk of response) {
+        const parts = chunk.candidates?.[0]?.content?.parts;
+        if (parts) {
+          for (const part of parts) {
+            if (!part.text) {
+              continue;
+            } else if (part.thought) {
+              yield `[thought]${part.text}`;
+            } else {
+              yield part.text;
+            }
           }
+        }
+      }
+    } else {
+      for await (const chunk of response) {
+        if (chunk.text) {
+          yield chunk.text; //yield itu digunakan untuk menghentikan sementara sebuah proses, dan akan di lanjutkan kembali, seperti proses loading (dan menggunakan tanda * di akhir kata function)
         }
       }
     }
   } else {
-    for await (const chunk of response) {
-      if (chunk.text) {
-        yield chunk.text; //yield itu digunakan untuk menghentikan sementara sebuah proses, dan akan di lanjutkan kembali, seperti proses loading (dan menggunakan tanda * di akhir kata function)
+    const query = conversation[conversation.length - 1].parts?.[0].text;
+    const historyChat = conversation.slice(0, -1);
+
+    const ai = createAI();
+
+    let contents: Content[] = [
+      ...historyChat,
+      {
+        role: "user",
+        parts: [
+          {
+            text: `
+  <Role>
+  You are an AI Financial analyst. You are helping the user analyze their financial data 
+  </Role>
+
+  <input>
+  User question: '${query}'
+  </input>
+
+  <instruction>
+  - Extract the transaction details from the input.
+  - Answer the user question ONLY base on the relevant transaction data (if there's need data).
+  - If there are calculations (total spending, average, etc), calculate them accurately based on the data.
+  - Provide answer in ad neat, professional, yet easy-to-understand markdown format.
+  - If there is no relevant data at all, state that the data is not available in the history.
+  - If user question is general and not need a data, response generally.
+  - The final respone if there are no more function being called is as simple as possible
+  </instruction>
+  <Context>
+  - Current Date : ${new Date().toDateString()}
+  </Context>
+  <Constraints>
+  - Answer in relaxed, polite but professonal in Indoesian.
+  - Dont make assumptions about data from users if they don't mention it.
+  - If there area question outside the context related to finance,  you must only asnwer questions related to finance.
+  - Don't answer in table format instead of markdown.
+  </Constraints>
+  `,
+          },
+        ],
+      },
+    ];
+
+    let running = true;
+    while (running) {
+      const response = await ai.models.generateContentStream({
+        model: "gemini-3.5-flash",
+        contents,
+        config: {
+          tools: [{ functionDeclarations: [getTransactionDeclaration] }],
+          thinkingConfig: {
+            includeThoughts: isThinking,
+          },
+        },
+      });
+
+      const modelParts: Part[] = [];
+      const functionCalls: FunctionCall[] = [];
+
+      for await (const chunk of response) {
+        const parts = chunk.candidates?.[0]?.content?.parts || [];
+        if (parts) {
+          for (const part of parts) {
+            modelParts.push(part);
+            if (part.functionCall) {
+              functionCalls.push(part.functionCall);
+            } else if (part.text) {
+              if (part.thought) {
+                if (isThinking) yield `[thought]${part.text}`;
+              } else {
+                yield part.text;
+              }
+            }
+          }
+        }
+      }
+      if (functionCalls.length > 0) {
+        contents.push({ role: `model`, parts: modelParts });
+
+        const functionResponseParts = await Promise.all(
+          functionCalls.map(async (functionCall) => {
+            const { name, args, id } = functionCall;
+            if (!args) {
+              throw new Error("No arguments provided for create transcations");
+            }
+
+            let resultData = {};
+
+            switch (name) {
+              case "get_transaction":
+                const dataFind = await findEmbedding(
+                  JSON.stringify(args),
+                  0.9,
+                  100,
+                );
+                resultData = dataFind || [];
+                break;
+
+              default:
+                throw new Error(`unknown function call`);
+            }
+
+            return {
+              functionResponse: {
+                name,
+                response: { result: resultData },
+                id,
+              },
+            };
+          }),
+        );
+        contents.push({
+          role: "user",
+          parts: functionResponseParts,
+        });
+      } else {
+        running = false;
       }
     }
   }
 
-  for await (const chunk of response) {
-    if (chunk.text) {
-      yield chunk.text; //yield itu digunakan untuk menghentikan sementara sebuah proses, dan akan di lanjutkan kembali, seperti proses loading (dan menggunakan tanda * di akhir kata function)
-    }
-  }
+  // for await (const chunk of response) {
+  //   if (chunk.text) {
+  //     yield chunk.text; //yield itu digunakan untuk menghentikan sementara sebuah proses, dan akan di lanjutkan kembali, seperti proses loading (dan menggunakan tanda * di akhir kata function)
+  //   }
+  // }
 }
