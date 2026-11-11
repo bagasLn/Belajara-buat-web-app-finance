@@ -4,7 +4,7 @@ import { Conversation } from "@/app/types/ai";
 import { createAI } from "./instance";
 import z from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { generateEmbedding } from "./embedding";
+import { findEmbedding, generateEmbedding } from "./embedding";
 import { Transaction } from "@/app/types/transaction";
 
 export async function handleChat(
@@ -133,18 +133,9 @@ async function personalizeChat(
   isThinking?: boolean,
 ) {
   const ai = createAI();
-  const supabase = await createClient();
-  const queryEmbedding = await generateEmbedding(query);
 
-  const { data, error } = await supabase.rpc("match_transactions", {
-    query_embedding: queryEmbedding,
-    match_threshold: 0.3,
-    match_count: 15,
-  });
+  const data = await findEmbedding(query);
 
-  if (error) {
-    throw new Error("failed to perform vector search");
-  }
   let contextData = "";
 
   if (!data || data.length === 0) {
