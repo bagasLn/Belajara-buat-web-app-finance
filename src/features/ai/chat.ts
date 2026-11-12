@@ -60,7 +60,12 @@ async function generalChat(conversation: Content[], isThinking?: boolean) {
         // thinkingLevel: isThinking ? ThinkingLevel.HIGH : ThinkingLevel.MINIMAL,
         // thinkingBudget: isThinking ? -1 : 0,
       },
-      tools: [{ googleSearch: {} }],
+      tools: [
+        {
+          googleSearch: {},
+          urlContext: {},
+        },
+      ],
 
       // mengatur bot atau ai, untuk merespon menjadi spesifik sesuai web yang di develop
       systemInstruction: `
@@ -160,7 +165,6 @@ export async function* handleChatStreaming(
   } else {
     const query = conversation[conversation.length - 1].parts?.[0].text;
     const historyChat = conversation.slice(0, -1);
-
     const ai = createAI();
 
     let contents: Content[] = [
