@@ -1,0 +1,5 @@
+C:\eNgineer\WPU\finance\node_modules\@google\genai\dist\genai.d.ts
+C:\eNgineer\WPU\finance\node_modules\@google\genai\dist\node\node.d.ts
+C:\eNgineer\WPU\finance\node_modules\@google\genai\dist\tokenizer\node.d.ts
+C:\eNgineer\WPU\finance\node_modules\@google\genai\dist\vertex_internal\index.d.ts
+C:\eNgineer\WPU\finance\node_modules\@google\genai\dist\web\web.d.ts

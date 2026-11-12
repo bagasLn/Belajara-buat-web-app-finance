@@ -3,9 +3,7 @@
 import { Conversation } from "@/app/types/ai";
 import { createAI } from "./instance";
 import z from "zod";
-import { createClient } from "@/lib/supabase/server";
-import { findEmbedding, generateEmbedding } from "./embedding";
-import { Transaction } from "@/app/types/transaction";
+import { findEmbedding } from "./embedding";
 import { Content, FunctionCall, Part } from "@google/genai";
 import { getTransactionDeclaration } from "./functionTransaction";
 
@@ -54,7 +52,7 @@ export async function handleChat(
 async function generalChat(conversation: Content[], isThinking?: boolean) {
   const ai = createAI();
   const response = await ai.models.generateContentStream({
-    model: "gemini-3.5-flash",
+    model: "gemini-2.5-flash",
     contents: [...conversation],
     config: {
       thinkingConfig: {
@@ -62,6 +60,7 @@ async function generalChat(conversation: Content[], isThinking?: boolean) {
         // thinkingLevel: isThinking ? ThinkingLevel.HIGH : ThinkingLevel.MINIMAL,
         // thinkingBudget: isThinking ? -1 : 0,
       },
+      tools: [{ googleSearch: {} }],
 
       // mengatur bot atau ai, untuk merespon menjadi spesifik sesuai web yang di develop
       systemInstruction: `
