@@ -57,11 +57,11 @@ export default function WizardInput({ refetch }: { refetch: () => void }) {
   }
 
   return (
-    <Card className="w-full border-primary/20 p-0">
+    <Card className="w-full p-0 border-primary/20">
       <CardContent className="pr-2">
         <form
           onSubmit={form.handleSubmit(onSubmit)}
-          className=" flex items-center gap-2"
+          className="flex items-center gap-2 "
         >
           <div className="text-primary">
             <SparklesIcon className="size-5" />
@@ -76,7 +76,7 @@ export default function WizardInput({ refetch }: { refetch: () => void }) {
                   id="form-message"
                   placeholder="Write your transaction here"
                   autoComplete="off"
-                  className="h-4  focus:outline-none"
+                  className="h-4 focus:outline-none"
                   onKeyDown={handleKeyDown}
                   disabled={isPending}
                 />

@@ -5,7 +5,7 @@ import { createAI } from "./instance";
 import z from "zod";
 import { findEmbedding } from "./embedding";
 import { Content, FunctionCall, Part } from "@google/genai";
-import { getTransactionDeclaration } from "./functionTransaction";
+import { getTransactionDeclaration } from "./function-transaction";
 
 export async function handleChat(
   conversation: Conversation[],

@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 
-import DashboardContent from "./transaction/_components/dashboard-content";
+import DashboardContent from "./_components/dashboard-content";
 
 export const metadata: Metadata = {
   title: "FInance-Dasboard",

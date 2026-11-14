@@ -1,8 +1,9 @@
 "use client";
 import { useQuery } from "@tanstack/react-query";
-import { BalanceCards } from "../../_components/balance-card";
+import { BalanceCards } from "./balance-card";
 import WizardInput from "./wizard-input";
 import { getBalanceSummary } from "@/features/transaction/action";
+import GenerativeContent from "./generative-content";
 
 export default function DashboardContent() {
   const { data, error, refetch } = useQuery({
@@ -14,6 +15,7 @@ export default function DashboardContent() {
     <section id="content" className="space-y-4">
       <WizardInput refetch={refetch} />
       <BalanceCards data={data} error={error} />
+      <GenerativeContent />
     </section>
   );
 }
