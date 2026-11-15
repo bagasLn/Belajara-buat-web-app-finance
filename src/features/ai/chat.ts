@@ -2,7 +2,6 @@
 
 import { Conversation } from "@/app/types/ai";
 import { createAI } from "./instance";
-import z from "zod";
 import { findEmbedding } from "./embedding";
 import { Content, FunctionCall, Part } from "@google/genai";
 import { getTransactionDeclaration } from "./function-transaction";

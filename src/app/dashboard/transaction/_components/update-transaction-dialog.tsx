@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { CATEGORIES } from "@/constants/transaction-constants";
 import { updateTransaction } from "@/features/transaction/action";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
@@ -193,19 +194,11 @@ export default function UpdateTransactionDialaog({
                         <SelectValue placeholder="select category" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Food & Drink">
-                          Food & Drink
-                        </SelectItem>
-                        <SelectItem value="Transportation">
-                          Transportation
-                        </SelectItem>
-                        <SelectItem value="Entertaiment">
-                          Entertaiment
-                        </SelectItem>
-                        <SelectItem value="Shopping">Shopping</SelectItem>
-                        <SelectItem value="Housing">Housing</SelectItem>
-                        <SelectItem value="Salary">Salary</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
+                        {CATEGORIES.map((category) => (
+                          <SelectItem value={category} key={category}>
+                            {category}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     {fieldState.invalid && (

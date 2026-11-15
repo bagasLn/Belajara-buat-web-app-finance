@@ -15,24 +15,10 @@ import {
   getTransactionDeclaration,
   updateTransactionDeclaration,
 } from "./function-transaction";
-
-const transactionSchema = z.object({
-  amount: z.number().default(0).describe("Transcation nominal"),
-  type: z.enum(["income", "expense"]).describe("Type of transcation"),
-  category: z
-    .enum([
-      "Food & Drink",
-      "Transportation",
-      "Entertaiment",
-      "Shopping",
-      "Housing",
-      "Salary",
-      "Others",
-    ])
-    .describe("Category of transcation"),
-  description: z.string().describe("Short text describing transcation"),
-  date: z.string().describe("the date of transcation YYYY-MM-DD format"),
-});
+import {
+  CATEGORIES,
+  transactionSchema,
+} from "@/constants/transaction-constants";
 
 export async function handleWizardInput(message: string) {
   const contents: Content[] = [
@@ -51,7 +37,7 @@ export async function handleWizardInput(message: string) {
                 -"amount": a number representing the cost (positive). Use 0 if not provided.
                 -"type": type of transcation, either 'income' or 'expense'
                 -"category": choose the most appropriate category from this exact list:
-                    "Food & Drink", "Transportation", "Entertaiment", "Shopping", "Housing", "Salary", "Other".
+                    ${CATEGORIES.join(",")}.
                 -"description": a short string describing of transcation, first letter capitalized.
                 -"date": date of transcation in YYYY-MM-DD format.
                         Assume the current date if relative terms like 'today' or 'just now'. If not define use current date
@@ -88,6 +74,7 @@ export async function handleWizardInput(message: string) {
   if (transcation.amount <= 0) {
     throw new Error("Can't crate transcation with invalid amount");
   }
+  await createTransaction(transcation);
   return "crate transcation success";
 }
 
