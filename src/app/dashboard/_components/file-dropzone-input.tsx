@@ -24,16 +24,16 @@ export default function FileDropZoneInput({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { mutate, isPending } = useMutation({
     mutationFn: extractReceiptData,
-    onSuccess: (reponse) => {
-      // setValues({
-      //   ...response,
-      //   amount: `${response.amount}`,
-      // });
+    onSuccess: (response) => {
+      setValues({
+        ...response,
+        amount: `${response.amount}`,
+      });
       toast.success("Scan receipt successfully");
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
-      refetch();
+      //   refetch();
     },
     onError: (error) => {
       toast.error(
@@ -48,7 +48,8 @@ export default function FileDropZoneInput({
     if (
       !file.type.endsWith("pdf") &&
       !file.type.startsWith("image") &&
-      !file.type.startsWith("video")
+      !file.type.startsWith("video") &&
+      !file.type.startsWith("audio")
     ) {
       toast.error("File type not supported");
       return;
@@ -91,7 +92,7 @@ export default function FileDropZoneInput({
         type="file"
         ref={fileInputRef}
         className="hidden"
-        accept=".pdf, image/*, video/*"
+        accept=".pdf, image/*, video/*, audio/*"
         onChange={(e) => e.target.files && processFile(e.target.files[0])}
       />
       {isPending ? (

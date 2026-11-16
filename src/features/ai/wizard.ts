@@ -28,18 +28,18 @@ export async function handleWizardInput(message: string) {
         {
           text: `
                 <role>
-                    You are an AI Wizard finance assistant, who can extract transcation details from text.
+                    You are an AI Wizard finance assistant, who can extract transaction details from text.
                 </role>
 
                 <Instruction>
-                Extract transcation details from the following text and return it as a structure JSON object.
-                The JSON object must have exactly these fileds:
+                Extract transaction details from the following text and return it as a structure JSON object.
+                The JSON object must have exactly these fields:
                 -"amount": a number representing the cost (positive). Use 0 if not provided.
-                -"type": type of transcation, either 'income' or 'expense'
+                -"type": type of transaction, either 'income' or 'expense'
                 -"category": choose the most appropriate category from this exact list:
                     ${CATEGORIES.join(",")}.
-                -"description": a short string describing of transcation, first letter capitalized.
-                -"date": date of transcation in YYYY-MM-DD format.
+                -"description": a short string describing of transaction, first letter capitalized.
+                -"date": date of transaction in YYYY-MM-DD format.
                         Assume the current date if relative terms like 'today' or 'just now'. If not define use current date
                 </Instruction>
 
@@ -70,46 +70,73 @@ export async function handleWizardInput(message: string) {
     },
   });
 
-  const transcation = transactionSchema.parse(JSON.parse(`${response.text}`));
-  if (transcation.amount <= 0) {
-    throw new Error("Can't crate transcation with invalid amount");
+  const transaction = transactionSchema.parse(JSON.parse(`${response.text}`));
+  if (transaction.amount <= 0) {
+    throw new Error("Can't crate transaction with invalid amount");
   }
-  await createTransaction(transcation);
-  return "crate transcation success";
+  await createTransaction(transaction);
+  return "crate transaction success";
 }
 
-export async function handleWizardTools(message: string) {
-  const contents: Content[] = [
-    {
-      role: "user",
-      parts: [
-        {
-          text: `
+export async function handleWizardTools(formData: FormData) {
+  const type = formData.get("type") as "audio" | "text";
+  const file = formData.get("file") as File;
+  const request = formData.get("request") as String;
+  if (type === "audio" && !file) {
+    throw new Error("No File upload");
+  }
+  let mimeType = "";
+  let base64Data = "";
+
+  if (type === "audio") {
+    mimeType = file.type;
+    base64Data = Buffer.from(await file.arrayBuffer()).toString("base64");
+  }
+
+  let contents: Content[] = [];
+
+  contents.push({
+    role: "user",
+    parts: [
+      ...(type === "audio"
+        ? [
+            {
+              inlineData: {
+                mimeType,
+                data: base64Data,
+              },
+            },
+          ]
+        : []),
+      {
+        text: `
   
     <role>
-        You are an AI Wizard finance assistant, who can extract transcation details from text.
+        You are an AI Wizard finance assistant, who can extract transaction details from ${type}.
     </role>
 
     <Instruction>
-    - Extract transcation details from the following text.
+    - Extract transaction details from ${type === "text" ? " the following text" : "the audio file"} in bahasa indonesia.
     - If request is to update or delete transaction, you must call function get_transaction first to find out which transaction will be update or delete
-    - When update transaction, args mus return from get_transaction before  with fully like in schema
-    - The final respone if there are no more function being called is as simple as possible
+    - When update transaction, args must return from get_transaction before  with fully like in schema
+    - The final response if there are no more function being called is as simple as possible
     </Instruction>
 
     <Context>
     Current Date: ${new Date().toISOString()}
     </Context>
 
-    <input>
-    Text to extract: ${message}
-    </input>
+  ${
+    type === "text" &&
+    ` <input>
+    Text to extract: ${request}
+    </input>`
+  }
 
   `,
-        },
-      ],
-    },
-  ];
+      },
+    ],
+  });
 
   const ai = createAI();
 
@@ -140,7 +167,7 @@ export async function handleWizardTools(message: string) {
         response.functionCalls.map(async (functionCall) => {
           const { name, args, id } = functionCall;
           if (!args) {
-            throw new Error("No arguments provided for create transcations");
+            throw new Error("No arguments provided for create transactions");
           }
 
           let resultData = {};

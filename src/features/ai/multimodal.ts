@@ -58,7 +58,7 @@ export async function extractReceiptData(formData: FormData) {
   ];
 
   const response = await ai.models.generateContent({
-    model: "gemini-3.5-flash",
+    model: "gemini-3.5-flash-lite",
     contents,
   });
   if (!response.text) {
@@ -67,8 +67,8 @@ export async function extractReceiptData(formData: FormData) {
 
   const transaction = transactionSchema.parse(JSON.parse(`${response.text}`));
 
-  //   return transaction;
+  return transaction;
   //save to DB
-  await createTransaction(transaction);
-  return "crate transaction success";
+  //   await createTransaction(transaction);
+  //   return "crate transaction success";
 }
