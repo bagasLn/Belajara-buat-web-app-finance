@@ -10,6 +10,8 @@ import { useMutation } from "@tanstack/react-query";
 import { error } from "console";
 import {
   ChartPieIcon,
+  Image,
+  ImageIcon,
   Loader2Icon,
   Sparkles,
   SparklesIcon,
@@ -51,11 +53,18 @@ export default function GenerativeContent() {
     "chart",
   );
 
-  const [result, setResult] = useState<{
-    type: "chart";
-    chartType: "bar" | "pie";
-    data: { name: string; value: number }[];
-  } | null>(null);
+  const [result, setResult] = useState<
+    | {
+        type: "chart";
+        chartType: "bar" | "pie";
+        data: { name: string; value: number }[];
+      }
+    // | {
+    //     type: "image";
+    //     data: string;
+    //   }
+    | null
+  >(null);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -69,6 +78,12 @@ export default function GenerativeContent() {
         case "chart":
           const result = await generateChat(request);
           return { ...result, type: "chart" };
+        // case "image":
+        //   const resultImage = await generateImage(request);
+        //   return {
+        //     type: "image",
+        //     data: "resultImage",
+        //   };
         default:
           return null;
       }
@@ -116,7 +131,15 @@ export default function GenerativeContent() {
                 size="icon"
                 onClick={() => setInsightType("chart")}
               >
-                <ChartPieIcon />
+                {/* <ImageIcon />
+              </Button>
+              <Button
+                variant={insightType === "image" ? "default" : "secondary"}
+                type="button"
+                size="icon"
+                onClick={() => setInsightType("image")}
+              >
+                <ImageIcon /> */}
               </Button>
             </ButtonGroup>
             <div className="flex flex-row gap-2">
@@ -150,7 +173,7 @@ export default function GenerativeContent() {
           </form>
         </div>
       </CardHeader>
-      <CardContent className="h-75">
+      <CardContent className={cn(result?.type === "chart" && "h-70")}>
         {error && (
           <div className="p-4 text-sm border rounded-lg text-destructive border-destructive/50 bg-destructive/10">
             {error.message}
@@ -160,9 +183,9 @@ export default function GenerativeContent() {
         {!result ? (
           <div className="flex items-center justify-center border-2 border-dashed rounded-lg h-70">
             {isPending ? (
-              <div>
+              <div className="flex flex-col items-center">
                 <Loader2Icon className="size-8 animate-spin" />
-                <span>AIis generate insight</span>
+                <span>AI is generate insight</span>
               </div>
             ) : (
               <span className="text-lg text-muted-foreground/50">
@@ -245,6 +268,18 @@ export default function GenerativeContent() {
                 )}
               </ResponsiveContainer>
             )}
+
+            {/* {result.type === "image" && (
+              <div className="flex items-center ">
+                <Image
+                  width={1920}
+                  height={1080}
+                  src={result.data}
+                  alt="Generated Image"
+                  className="rounded-xl"
+                />
+              </div>
+            )} */}
           </div>
         )}
       </CardContent>
