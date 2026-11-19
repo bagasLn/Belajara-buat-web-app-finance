@@ -6,10 +6,14 @@ export default function Home() {
   return (
     <main className="flex flex-col items-center justify-center min-h-screen">
       <CoinsIcon className="text-primary size-20" />
-      <h1 className="text-4xl font-bold text-primary">teks 1</h1>
-      <p className="mt-2 text-lg">teks 2</p>
+      <h1 className="text-4xl font-bold text-primary">
+        Haii, Selamat Datang di financial apps
+      </h1>
+      <p className="mt-2 text-lg">webapps yang di tenagai oleh AI</p>
       <Link href="/dashboard">
-        <Button className="mt-2 size='lg'">click to awesome</Button>
+        <Button className="mt-2 size='lg'">
+          klik untuk lebih tau keseruanya
+        </Button>
       </Link>
     </main>
   );
