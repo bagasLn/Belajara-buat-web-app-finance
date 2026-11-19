@@ -25,5 +25,5 @@ CREATE POLICY "Permissive rules for all" ON public.transactions
     FOR ALL USING (true);
 
 -- Jika sudah ada system auth
--- CRATE POLICY "Users can manage their own transactions" ON public.transactions
+-- CREATE POLICY "Users can manage their own transactions" ON public.transactions
 --     FOR ALL USING (auth.uid () = user_id) 

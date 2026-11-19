@@ -36,10 +36,22 @@ export const supabaseProxy = async (request: NextRequest) => {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user && !request.nextUrl.pathname.startsWith("/login")) {
-    // const url = request.nextUrl.clone();
-    // url.pathname = "/login"
-    // return NextResponse.redirect(url);
+  const { pathname } = request.nextUrl;
+
+  const isProtectedPath = pathname.startsWith("/dashboard");
+  const isAuthPath = pathname.startsWith("/auth");
+
+  if (!user && isProtectedPath) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/auth/login";
+    return NextResponse.redirect(url);
   }
+
+  if (user && isAuthPath) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/dashboard";
+    return NextResponse.redirect(url);
+  }
+
   return supabaseRespone;
 };
