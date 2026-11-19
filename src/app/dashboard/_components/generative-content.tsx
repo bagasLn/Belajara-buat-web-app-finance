@@ -131,16 +131,16 @@ export default function GenerativeContent() {
                 size="icon"
                 onClick={() => setInsightType("chart")}
               >
-                {/* <ImageIcon />
+                <ImageIcon />
               </Button>
-              <Button
+              {/* <Button
                 variant={insightType === "image" ? "default" : "secondary"}
                 type="button"
                 size="icon"
                 onClick={() => setInsightType("image")}
               >
-                <ImageIcon /> */}
-              </Button>
+                <VideoIcon />
+              </Button> */}
             </ButtonGroup>
             <div className="flex flex-row gap-2">
               <Controller
