@@ -88,8 +88,8 @@ export default function RegisterPage() {
   return (
     <main className="flex flex-col items-center justify-center min-h-screen">
       <CoinsIcon className="text-primary size-20" />
-      <h1 className="text-4xl font-bold text-primary">Create account</h1>
-      <p className="mt-2 text-lg"></p>
+      <h1 className="text-4xl font-bold text-primary">Financial Login</h1>
+
       <Card className="w-md mt-4 gap-4">
         <CardHeader>
           <CardTitle className="text-2xl font-bold">Create Account</CardTitle>

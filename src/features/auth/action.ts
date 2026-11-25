@@ -26,3 +26,17 @@ export async function authRegister(user: User) {
 
   return data;
 }
+
+export async function authLogin(user: User) {
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: user.email,
+    password: user.password,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+}
