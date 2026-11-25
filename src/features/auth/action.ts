@@ -1,17 +1,21 @@
+"use server";
+
 import { User } from "@/app/types/auth";
 import { createClient } from "@/lib/supabase/server";
-import { Phone } from "lucide-react";
+import { headers } from "next/headers";
 
 export async function authRegister(user: User) {
   const supabase = await createClient();
+  const headerList = await headers();
+  const origin = headerList.get("origin");
   const { data, error } = await supabase.auth.signUp({
     email: user.email,
     password: user.password,
     options: {
-      emailRedirectTo: `${window.location.origin}/auth/callback`,
+      emailRedirectTo: origin ? `${origin}/auth/callback` : undefined,
       data: {
         full_name: user.full_name,
-        Phone: user.phone,
+        phone: user.phone,
       },
     },
   });

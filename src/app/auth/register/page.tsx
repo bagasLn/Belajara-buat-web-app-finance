@@ -1,4 +1,5 @@
 "use client";
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -15,12 +16,15 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { authRegister } from "@/features/auth/action";
 import { createClient } from "@/lib/supabase/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CoinsIcon } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { CoinsIcon, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
+import { toast } from "sonner";
 import z from "zod";
 
 const formSchema = z
@@ -51,6 +55,36 @@ export default function RegisterPage() {
     },
   });
 
+  const { mutate, isPending } = useMutation({
+    mutationFn: (data: z.infer<typeof formSchema>) => authRegister(data),
+    onSuccess: (data) => {
+      if (data.session) {
+        toast.success(
+          "Registertrasion successfull! Redirecting to dashboard...",
+        );
+        router.push("/dashboard");
+        router.refresh();
+      } else {
+        toast.success(
+          "Registertrasion successfull! Please check your email inbox to verify your account",
+          { duration: 6000 },
+        );
+        router.push("/auth/login");
+      }
+    },
+    onError: (error) => {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Registration failed. Please try again",
+      );
+    },
+  });
+
+  const onSubmit = (data: z.infer<typeof formSchema>) => {
+    mutate(data);
+  };
+
   return (
     <main className="flex flex-col items-center justify-center min-h-screen">
       <CoinsIcon className="text-primary size-20" />
@@ -63,7 +97,7 @@ export default function RegisterPage() {
             Create a new account to start tracking your finances
           </CardDescription>
         </CardHeader>
-        <form>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardContent>
             <FieldGroup className="gap-3">
               <Controller
@@ -76,7 +110,7 @@ export default function RegisterPage() {
                       {...field}
                       id="full_name"
                       placeholder="insert your full name"
-                      disabled={false}
+                      disabled={isPending}
                       required
                     />
                     {fieldState.invalid && (
@@ -177,7 +211,14 @@ export default function RegisterPage() {
               type="submit"
               className="w-full text-md font-semibold py-5 cursor-pointer"
             >
-              Register
+              {isPending ? (
+                <div className="flex gap-2">
+                  <Loader2 className="w-4 h-2 mr-2 animate-spin " />
+                  Registering...
+                </div>
+              ) : (
+                "Register"
+              )}
             </Button>
             <div>
               Already have an account?{" "}
