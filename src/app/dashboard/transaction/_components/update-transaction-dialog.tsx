@@ -1,4 +1,3 @@
-import { Transaction } from "@/app/types/transaction";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
 import {
@@ -26,6 +25,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { CATEGORIES } from "@/constants/transaction-constants";
 import { updateTransaction } from "@/features/transaction/action";
+import { Transaction } from "@/app/types/transaction";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { format } from "date-fns/format";

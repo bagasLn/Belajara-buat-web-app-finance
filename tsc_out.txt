@@ -1,1 +1,3 @@
-^C
+src/app/dashboard/profile/page.tsx(83,55): error TS2554: Expected 2 arguments, but got 1.
+src/app/dashboard/profile/page.tsx(98,22): error TS2345: Argument of type '"info" | "password"' is not assignable to parameter of type '"info" | "passwword"'.
+  Type '"password"' is not assignable to type '"info" | "passwword"'. Did you mean '"passwword"'?

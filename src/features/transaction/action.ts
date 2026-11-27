@@ -1,12 +1,17 @@
 "use server";
 import { Transaction } from "@/app/types/transaction";
 import { createClient } from "@/lib/supabase/server";
-import { date } from "zod";
 import { generateEmbedding } from "../ai/embedding";
+import { getUserData } from "../auth/action";
+
 export async function getBalanceSummary() {
   const supabase = await createClient();
+  const user = await getUserData();
 
-  const { data } = await supabase.from("transactions").select("amount,type");
+  const { data } = await supabase
+    .from("transactions")
+    .select("amount,type")
+    .eq("user_id", user.id);
 
   const { totalIncome, totalExpense, savings } = (data || []).reduce(
     (acc, tx) => {
@@ -36,11 +41,13 @@ export async function getTransactions(params?: {
 }) {
   const { limit = 10, page = 1, search } = params || {};
   const supabase = await createClient();
+  const user = await getUserData();
   let query = supabase
     .from("transactions")
     .select("id, amount, type, description, date, category", {
       count: "exact",
     })
+    .eq("user_id", user.id)
     .order("date")
     .order("create_at", {
       ascending: true,
@@ -87,7 +94,9 @@ export async function createTransaction(
   transaction: Omit<Transaction, "id" | "user_id" | "embedding">,
 ) {
   const supabase = await createClient();
-  const payload: Record<string, unknown> = { ...transaction };
+  const user = await getUserData();
+
+  const payload: Record<string, unknown> = { ...transaction, user_id: user.id };
   const embeddingVector = await handleEmbedding(transaction);
   if (embeddingVector) payload.embedding = embeddingVector;
 
@@ -100,10 +109,12 @@ export async function createTransaction(
 
 export async function deleteTransaction(id: string) {
   const supabase = await createClient();
+  const user = await getUserData();
   const { error, success } = await supabase
     .from("transactions")
     .delete()
-    .eq("id", id);
+    .eq("id", id)
+    .eq("user_id", user.id);
   if (error) throw new Error(error.message);
   return success;
 }
@@ -113,13 +124,15 @@ export async function updateTransaction(
   transaction: Omit<Transaction, "id" | "user_id" | "embedding">,
 ) {
   const supabase = await createClient();
+  const user = await getUserData();
   const payload: Record<string, unknown> = { ...transaction };
   const embeddingVector = await handleEmbedding(transaction);
   if (embeddingVector) payload.embedding = embeddingVector;
   const { data, error } = await supabase
     .from("transactions")
     .update(payload)
-    .eq("id", id);
+    .eq("id", id)
+    .eq("user_id", user.id);
 
   if (error) throw new Error(error.message);
 

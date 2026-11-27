@@ -5,6 +5,7 @@ import {
   CoinsIcon,
   LayoutDashboard,
   LogOutIcon,
+  UserIcon,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -33,6 +34,11 @@ const sidebarItems = [
     label: "Transaction",
     icon: <BanknoteIcon />,
     href: "/dashboard/transaction",
+  },
+  {
+    label: "Profile",
+    icon: <UserIcon />,
+    href: "/dashboard/profile",
   },
 ];
 

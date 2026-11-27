@@ -1,0 +1,4 @@
+110:    /** @deprecated Use `z.email()` instead. */
+111:    email(params?: string | core.$ZodCheckEmailParams): this;
+175:export interface ZodEmail extends ZodStringFormat<"email"> {
+179:export declare function email(params?: string | core.$ZodEmailParams): ZodEmail;
